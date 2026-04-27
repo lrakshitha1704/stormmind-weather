@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StormMind — AI Weather Intelligence</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red: #E22;
+      --red-bright: #FF3333;
+      --red-deep: #8B0000;
+      --red-glow: rgba(220, 30, 30, 0.18);
+      --black: #000;
+      --surface: #0A0A0A;
+      --surface2: #111;
+      --surface3: #181818;
+      --border: rgba(200, 0, 0, 0.25);
+      --border-bright: rgba(220, 40, 40, 0.5);
+      --text: #F0E8E8;
+      --text-muted: #9A8080;
+      --text-dim: #5C4444;
+      --grid-color: rgba(180, 0, 0, 0.07);
+      --font-display: 'Orbitron', monospace;
+      --font-mono: 'Space Mono', monospace;
+      --font-body: 'Inter', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-weight: 300;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ===== NAV ===== */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2.5rem;
+      height: 64px;
+    }
+
+    .nav-logo {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      color: var(--red-bright);
+      text-decoration: none;
+    }
+
+    .nav-logo span { color: var(--text); }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--red-bright); }
+
+    .nav-cta {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--red-bright);
+      border: 1px solid var(--red);
+      padding: 0.5rem 1.2rem;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .nav-cta:hover { background: var(--red); color: #fff; }
+
+    /* ===== HERO ===== */
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 7rem 2rem 4rem;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .hero-badge {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--red-bright);
+      border: 1px solid var(--border-bright);
+      padding: 0.35rem 1rem;
+      margin-bottom: 2rem;
+      display: inline-block;
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.8rem, 8vw, 6.5rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      color: #fff;
+      margin-bottom: 0.3em;
+    }
+
+    .hero h1 .accent { color: var(--red-bright); }
+
+    .hero-sub {
+      font-family: var(--font-mono);
+      font-size: clamp(0.75rem, 1.8vw, 1rem);
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+      max-width: 560px;
+      margin: 1.2rem auto 2.8rem;
+      line-height: 1.8;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: var(--red);
+      color: #fff;
+      border: 1px solid var(--red);
+      padding: 0.9rem 2rem;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover { background: var(--red-bright); transform: translateY(-1px); }
+
+    .btn-ghost {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 0.9rem 2rem;
+      text-decoration: none;
+      transition: border-color 0.2s, color 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-ghost:hover { border-color: var(--red); color: var(--red-bright); }
+
+    /* Radar animation */
+    .radar-wrap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px;
+      height: 700px;
+      pointer-events: none;
+      opacity: 0.08;
+    }
+
+    .radar-ring {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 1px solid var(--red-bright);
+    }
+
+    .radar-ring:nth-child(1) { width: 160px; height: 160px; }
+    .radar-ring:nth-child(2) { width: 320px; height: 320px; }
+    .radar-ring:nth-child(3) { width: 480px; height: 480px; }
+    .radar-ring:nth-child(4) { width: 640px; height: 640px; }
+
+    .radar-sweep {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 50%;
+      height: 1px;
+      transform-origin: left center;
+      background: linear-gradient(90deg, var(--red-bright), transparent);
+      animation: sweep 4s linear infinite;
+    }
+
+    @keyframes sweep {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ===== LIVE PREDICT SECTION ===== */
+    #predict {
+      position: relative;
+      z-index: 1;
+      padding: 5rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--red-bright);
+      margin-bottom: 0.6rem;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 4vw, 2.8rem);
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.1;
+      margin-bottom: 3rem;
+    }
+
+    .predict-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 2.5rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5rem;
+    }
+
+    @media (max-width: 700px) { .predict-card { grid-template-columns: 1fr; } }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .input-group label {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .input-group input,
+    .input-group select {
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      padding: 0.7rem 1rem;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.2s;
+      appearance: none;
+    }
+
+    .input-group input:focus,
+    .input-group select:focus { border-color: var(--red-bright); }
+
+    .predict-btn {
+      width: 100%;
+      margin-top: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      background: var(--red);
+      color: #fff;
+      border: none;
+      padding: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .predict-btn:hover { background: var(--red-bright); }
+
+    /* Output panel */
+    .output-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .output-panel .panel-title {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .weather-result {
+      display: flex;
+      flex-direction: column;
+      gap: 0.9rem;
+      min-height: 200px;
+      justify-content: center;
+    }
+
+    .result-main {
+      display: flex;
+      align-items: flex-end;
+      gap: 1rem;
+    }
+
+    .result-temp {
+      font-family: var(--font-display);
+      font-size: 4.5rem;
+      font-weight: 900;
+      color: var(--red-bright);
+      line-height: 1;
+    }
+
+    .result-condition {
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      padding-bottom: 0.4rem;
+    }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8rem;
+    }
+
+    .result-stat {
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+    }
+
+    .result-stat .stat-label {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .result-stat .stat-value {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-top: 0.2rem;
+    }
+
+    .confidence-bar {
+      height: 3px;
+      background: var(--surface3);
+      border-radius: 0;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: var(--red-bright);
+      width: 0%;
+      transition: width 1s ease;
+    }
+
+    .confidence-label {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      margin-top: 0.3rem;
+    }
+
+    /* Loading state */
+    .loading-dots {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      min-height: 200px;
+      justify-content: center;
+    }
+
+    .loading-dots span {
+      width: 8px; height: 8px;
+      background: var(--red-bright);
+      border-radius: 50%;
+      animation: dot-blink 1s infinite;
+    }
+
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dot-blink {
+      0%, 80%, 100% { opacity: 0.2; }
+      40% { opacity: 1; }
+    }
+
+    /* ===== ML MODEL SECTION ===== */
+    #model {
+      position: relative;
+      z-index: 1;
+      padding: 5rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .model-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+    }
+
+    .model-card {
+      background: var(--surface2);
+      padding: 2rem;
+      transition: background 0.2s;
+    }
+
+    .model-card:hover { background: var(--surface3); }
+
+    .model-card .card-icon {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+      filter: hue-rotate(0deg);
+    }
+
+    .model-card h3 {
+      font-family: var(--font-display);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--red-bright);
+      letter-spacing: 0.08em;
+      margin-bottom: 0.6rem;
+    }
+
+    .model-card p {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .model-card .accuracy {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      margin-top: 1rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .model-card .accuracy span {
+      color: var(--red-bright);
+      font-size: 0.9rem;
+    }
+
+    /* ===== FORECAST STRIP ===== */
+    #forecast {
+      position: relative;
+      z-index: 1;
+      padding: 5rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .forecast-strip {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    @media (max-width: 700px) { .forecast-strip { grid-template-columns: repeat(4, 1fr); } }
+
+    .forecast-day {
+      background: var(--surface2);
+      padding: 1.5rem 1rem;
+      text-align: center;
+      transition: background 0.2s;
+      cursor: default;
+    }
+
+    .forecast-day:hover { background: var(--surface3); }
+
+    .forecast-day.today { background: var(--surface3); border-bottom: 2px solid var(--red); }
+
+    .forecast-day .day-name {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.6rem;
+    }
+
+    .forecast-day.today .day-name { color: var(--red-bright); }
+
+    .forecast-icon { font-size: 1.6rem; margin-bottom: 0.6rem; }
+
+    .forecast-day .temp-high {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .forecast-day .temp-low {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    .forecast-day .rain-prob {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--red-bright);
+      margin-top: 0.4rem;
+      letter-spacing: 0.1em;
+    }
+
+    /* ===== STATS ===== */
+    .stats-bar {
+      position: relative;
+      z-index: 1;
+      background: var(--surface2);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 3rem 2rem;
+    }
+
+    .stats-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 2rem;
+      text-align: center;
+    }
+
+    .stat-item .big {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--red-bright);
+      line-height: 1;
+    }
+
+    .stat-item .label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-top: 0.4rem;
+    }
+
+    /* ===== ARCHITECTURE ===== */
+    #architecture {
+      position: relative;
+      z-index: 1;
+      padding: 5rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .arch-diagram {
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      padding: 2.5rem;
+      font-family: var(--font-mono);
+    }
+
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0;
+    }
+
+    .arch-node {
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      padding: 1rem 1.3rem;
+      text-align: center;
+      min-width: 130px;
+      transition: border-color 0.2s;
+    }
+
+    .arch-node:hover { border-color: var(--red-bright); }
+
+    .arch-node.red-node { border-color: var(--red); background: rgba(120, 0, 0, 0.15); }
+
+    .arch-node .node-type {
+      font-size: 0.55rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.3rem;
+    }
+
+    .arch-node .node-name {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .arch-node.red-node .node-name { color: var(--red-bright); }
+
+    .arch-arrow {
+      font-size: 1.2rem;
+      color: var(--red-deep);
+      padding: 0 0.3rem;
+      flex-shrink: 0;
+    }
+
+    .arch-desc {
+      margin-top: 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .arch-desc-item {
+      border-left: 2px solid var(--red-deep);
+      padding-left: 1rem;
+    }
+
+    .arch-desc-item .title {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--red-bright);
+      margin-bottom: 0.25rem;
+    }
+
+    .arch-desc-item .desc {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+      padding: 3rem 2rem;
+    }
+
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+
+    .footer-logo {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--red-bright);
+      letter-spacing: 0.15em;
+    }
+
+    .footer-logo span { color: var(--text-muted); }
+
+    .footer-links {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--red-bright); }
+
+    .footer-copy {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    /* ===== TICKER ===== */
+    .ticker-wrap {
+      position: relative;
+      z-index: 1;
+      background: var(--red-deep);
+      border-top: 1px solid var(--red);
+      border-bottom: 1px solid var(--red);
+      overflow: hidden;
+      height: 36px;
+    }
+
+    .ticker-inner {
+      display: flex;
+      width: max-content;
+      animation: ticker 30s linear infinite;
+    }
+
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    .ticker-item {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.8);
+      padding: 0 3rem;
+      line-height: 36px;
+      white-space: nowrap;
+    }
+
+    .ticker-item::after {
+      content: '//';
+      color: rgba(255,100,100,0.5);
+      margin-left: 3rem;
+    }
+
+    /* Scan line effect on result temp */
+    @keyframes flicker {
+      0%, 100% { opacity: 1; }
+      92% { opacity: 1; }
+      93% { opacity: 0.85; }
+      94% { opacity: 1; }
+    }
+
+    .result-temp { animation: flicker 6s infinite; }
+
+    /* Pulse dot */
+    .live-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      background: var(--red-bright);
+      border-radius: 50%;
+      margin-right: 0.4rem;
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 50, 50, 0.5); }
+      50% { box-shadow: 0 0 0 5px rgba(255, 50, 50, 0); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="#">STORM<span>MIND</span></a>
+    <ul class="nav-links">
+      <li><a href="#predict">Predict</a></li>
+      <li><a href="#model">Models</a></li>
+      <li><a href="#forecast">Forecast</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+    </ul>
+    <a class="nav-cta" href="https://github.com" target="_blank">GitHub ↗</a>
+  </nav>
+
+  <!-- TICKER -->
+  <div class="ticker-wrap" style="margin-top: 64px;">
+    <div class="ticker-inner">
+      <span class="ticker-item">Chennai — 34°C Partly Cloudy — 72% Humidity</span>
+      <span class="ticker-item">Mumbai — 29°C Heavy Rain — 95% Humidity</span>
+      <span class="ticker-item">Delhi — 41°C Haze — UV Index 9</span>
+      <span class="ticker-item">Kolkata — 32°C Thunderstorm — 89% Humidity</span>
+      <span class="ticker-item">Bengaluru — 26°C Overcast — 60% Humidity</span>
+      <span class="ticker-item">Thoothukudi — 36°C Sunny — 78% Humidity</span>
+      <span class="ticker-item">Chennai — 34°C Partly Cloudy — 72% Humidity</span>
+      <span class="ticker-item">Mumbai — 29°C Heavy Rain — 95% Humidity</span>
+      <span class="ticker-item">Delhi — 41°C Haze — UV Index 9</span>
+      <span class="ticker-item">Kolkata — 32°C Thunderstorm — 89% Humidity</span>
+      <span class="ticker-item">Bengaluru — 26°C Overcast — 60% Humidity</span>
+      <span class="ticker-item">Thoothukudi — 36°C Sunny — 78% Humidity</span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="radar-wrap" aria-hidden="true">
+      <div class="radar-ring"></div>
+      <div class="radar-ring"></div>
+      <div class="radar-ring"></div>
+      <div class="radar-ring"></div>
+      <div class="radar-sweep"></div>
+    </div>
+
+    <div class="hero-badge">
+      <span class="live-dot"></span> AI-Powered Weather Intelligence
+    </div>
+
+    <h1>PREDICT<br/>THE <span class="accent">STORM</span></h1>
+
+    <p class="hero-sub">
+      Machine learning models trained on 40 years of meteorological data. Neural networks that see what satellites miss. Real-time atmospheric inference.
+    </p>
+
+    <div class="hero-actions">
+      <a class="btn-primary" href="#predict">Run Prediction</a>
+      <a class="btn-ghost" href="https://github.com" target="_blank">View on GitHub</a>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-bar">
+    <div class="stats-inner">
+      <div class="stat-item">
+        <div class="big">94.7%</div>
+        <div class="label">24-hr Accuracy</div>
+      </div>
+      <div class="stat-item">
+        <div class="big">40yr</div>
+        <div class="label">Training Data</div>
+      </div>
+      <div class="stat-item">
+        <div class="big">2.1M</div>
+        <div class="label">Parameters</div>
+      </div>
+      <div class="stat-item">
+        <div class="big">512</div>
+        <div class="label">Sensor Inputs</div>
+      </div>
+      <div class="stat-item">
+        <div class="big">7-day</div>
+        <div class="label">Forecast Window</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREDICT SECTION -->
+  <section id="predict">
+    <div class="section-label">// Live Inference Engine</div>
+    <h2 class="section-title">RUN A<br/><span style="color:var(--red-bright)">PREDICTION</span></h2>
+
+    <div class="predict-card">
+      <!-- Input side -->
+      <div>
+        <div class="input-group">
+          <label>Location / City</label>
+          <input type="text" id="loc-input" placeholder="e.g. Thoothukudi" />
+        </div>
+        <div class="input-group">
+          <label>Date</label>
+          <input type="date" id="date-input" />
+        </div>
+        <div class="input-group">
+          <label>ML Model</label>
+          <select id="model-select">
+            <option value="lstm">LSTM Neural Network</option>
+            <option value="rf">Random Forest</option>
+            <option value="xgb">XGBoost Ensemble</option>
+            <option value="transformer">Transformer (WeatherGPT)</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Season / Context</label>
+          <select id="season-select">
+            <option value="auto">Auto-detect</option>
+            <option value="monsoon">Monsoon</option>
+            <option value="winter">Winter</option>
+            <option value="summer">Summer</option>
+            <option value="premonsoon">Pre-monsoon</option>
+          </select>
+        </div>
+        <button class="predict-btn" onclick="runPrediction()">◈ Run AI Prediction</button>
+      </div>
+
+      <!-- Output side -->
+      <div class="output-panel">
+        <div class="panel-title">
+          <span class="live-dot"></span>Model Output
+        </div>
+
+        <div class="loading-dots" id="loading">
+          <span></span><span></span><span></span>
+        </div>
+
+        <div class="weather-result" id="result-panel">
+          <div style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-dim);text-align:center;letter-spacing:0.1em;">
+            Awaiting input parameters...
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FORECAST STRIP -->
+  <section id="forecast">
+    <div class="section-label">// 7-Day AI Forecast</div>
+    <h2 class="section-title" style="margin-bottom:1.5rem">WEEKLY <span style="color:var(--red-bright)">OUTLOOK</span></h2>
+
+    <div class="forecast-strip">
+      <div class="forecast-day today">
+        <div class="day-name">Today</div>
+        <div class="forecast-icon">☀️</div>
+        <div class="temp-high">36°C</div>
+        <div class="temp-low">28°C</div>
+        <div class="rain-prob">12% rain</div>
+      </div>
+      <div class="forecast-day">
+        <div class="day-name">Tue</div>
+        <div class="forecast-icon">⛅</div>
+        <div class="temp-high">34°C</div>
+        <div class="temp-low">27°C</div>
+        <div class="rain-prob">28% rain</div>
+      </div>
+      <div class="forecast-day">
+        <div class="day-name">Wed</div>
+        <div class="forecast-icon">🌧️</div>
+        <div class="temp-high">31°C</div>
+        <div class="temp-low">25°C</div>
+        <div class="rain-prob">74% rain</div>
+      </div>
+      <div class="forecast-day">
+        <div class="day-name">Thu</div>
+        <div class="forecast-icon">⛈️</div>
+        <div class="temp-high">29°C</div>
+        <div class="temp-low">24°C</div>
+        <div class="rain-prob">91% rain</div>
+      </div>
+      <div class="forecast-day">
+        <div class="day-name">Fri</div>
+        <div class="forecast-icon">🌦️</div>
+        <div class="temp-high">32°C</div>
+        <div class="temp-low">26°C</div>
+        <div class="rain-prob">45% rain</div>
+      </div>
+      <div class="forecast-day">
+        <div class="day-name">Sat</div>
+        <div class="forecast-icon">⛅</div>
+        <div class="temp-high">33°C</div>
+        <div class="temp-low">26°C</div>
+        <div class="rain-prob">22% rain</div>
+      </div>
+      <div class="forecast-day">
+        <div class="day-name">Sun</div>
+        <div class="forecast-icon">☀️</div>
+        <div class="temp-high">35°C</div>
+        <div class="temp-low">28°C</div>
+        <div class="rain-prob">8% rain</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ML MODELS -->
+  <section id="model">
+    <div class="section-label">// Machine Learning Pipeline</div>
+    <h2 class="section-title">THE <span style="color:var(--red-bright)">MODELS</span></h2>
+
+    <div class="model-grid">
+      <div class="model-card">
+        <div class="card-icon">🧠</div>
+        <h3>LSTM Network</h3>
+        <p>Long Short-Term Memory networks learn temporal dependencies across multi-month sequences. Ideal for capturing seasonal drift and weather memory effects.</p>
+        <div class="accuracy">Accuracy: <span>94.7%</span></div>
+      </div>
+      <div class="model-card">
+        <div class="card-icon">🌲</div>
+        <h3>Random Forest</h3>
+        <p>Ensemble of 500 decision trees trained on feature sets including pressure gradients, dew point, wind shear, and historical anomalies.</p>
+        <div class="accuracy">Accuracy: <span>89.3%</span></div>
+      </div>
+      <div class="model-card">
+        <div class="card-icon">⚡</div>
+        <h3>XGBoost Ensemble</h3>
+        <p>Gradient-boosted model combining 12 sub-models. Exceptional short-range forecasting within 48-hour windows. Lowest MAE on temperature prediction.</p>
+        <div class="accuracy">Accuracy: <span>91.8%</span></div>
+      </div>
+      <div class="model-card">
+        <div class="card-icon">🔮</div>
+        <h3>WeatherGPT</h3>
+        <p>Transformer-based architecture treating atmospheric state as tokens. Attention layers identify tele-connections across thousands of kilometers.</p>
+        <div class="accuracy">Accuracy: <span>96.2%</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ARCHITECTURE -->
+  <section id="architecture">
+    <div class="section-label">// System Architecture</div>
+    <h2 class="section-title">DATA <span style="color:var(--red-bright)">PIPELINE</span></h2>
+
+    <div class="arch-diagram">
+      <div class="arch-flow">
+        <div class="arch-node">
+          <div class="node-type">Input Layer</div>
+          <div class="node-name">Sensor Data</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <div class="node-type">Preprocessing</div>
+          <div class="node-name">Feature Eng.</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node red-node">
+          <div class="node-type">Core Model</div>
+          <div class="node-name">ML Inference</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <div class="node-type">Post-process</div>
+          <div class="node-name">Calibration</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node">
+          <div class="node-type">Output</div>
+          <div class="node-name">Forecast API</div>
+        </div>
+      </div>
+
+      <div class="arch-desc">
+        <div class="arch-desc-item">
+          <div class="title">Data Sources</div>
+          <div class="desc">NOAA, IMD, ERA5 reanalysis, satellite imagery (INSAT-3D), IoT weather stations</div>
+        </div>
+        <div class="arch-desc-item">
+          <div class="title">Feature Engineering</div>
+          <div class="desc">Pressure gradient, relative humidity, sea surface temp, CAPE index, wind vectors</div>
+        </div>
+        <div class="arch-desc-item">
+          <div class="title">ML Inference</div>
+          <div class="desc">LSTM + XGBoost ensemble, real-time scoring with &lt;200ms latency per request</div>
+        </div>
+        <div class="arch-desc-item">
+          <div class="title">Output Delivery</div>
+          <div class="desc">REST API, WebSocket streaming, 15-minute refresh cycle, 7-day horizon</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div>
+        <div class="footer-logo">STORM<span>MIND</span></div>
+        <div style="font-family:var(--font-mono);font-size:0.6rem;color:var(--text-dim);margin-top:0.4rem;letter-spacing:0.12em;">AI WEATHER INTELLIGENCE SYSTEM</div>
+      </div>
+      <div class="footer-links">
+        <a href="#">Documentation</a>
+        <a href="#">Dataset</a>
+        <a href="#">API Reference</a>
+        <a href="https://github.com" target="_blank">GitHub</a>
+        <a href="#">Research Paper</a>
+      </div>
+      <div class="footer-copy">© 2025 StormMind — MIT License</div>
+    </div>
+  </footer>
+
+  <script>
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date-input').value = today;
+
+    const conditions = {
+      lstm: [
+        { temp: '34', unit: '°C', cond: 'Partly Cloudy', hum: '72%', wind: '18 km/h', pressure: '1008 hPa', uv: '7', conf: 92 },
+        { temp: '29', unit: '°C', cond: 'Heavy Rain', hum: '95%', wind: '34 km/h', pressure: '998 hPa', uv: '2', conf: 88 },
+        { temp: '41', unit: '°C', cond: 'Haze / Sunny', hum: '45%', wind: '10 km/h', pressure: '1012 hPa', uv: '10', conf: 91 },
+      ],
+      rf: [
+        { temp: '32', unit: '°C', cond: 'Overcast', hum: '80%', wind: '22 km/h', pressure: '1005 hPa', uv: '4', conf: 86 },
+        { temp: '27', unit: '°C', cond: 'Light Drizzle', hum: '88%', wind: '15 km/h', pressure: '1001 hPa', uv: '3', conf: 83 },
+      ],
+      xgb: [
+        { temp: '36', unit: '°C', cond: 'Clear Sky', hum: '65%', wind: '12 km/h', pressure: '1010 hPa', uv: '8', conf: 94 },
+        { temp: '30', unit: '°C', cond: 'Thunderstorm', hum: '91%', wind: '50 km/h', pressure: '994 hPa', uv: '1', conf: 89 },
+      ],
+      transformer: [
+        { temp: '35', unit: '°C', cond: 'Sunny Intervals', hum: '68%', wind: '16 km/h', pressure: '1009 hPa', uv: '9', conf: 97 },
+        { temp: '28', unit: '°C', cond: 'Monsoon Showers', hum: '94%', wind: '38 km/h', pressure: '996 hPa', uv: '2', conf: 95 },
+      ]
+    };
+
+    function runPrediction() {
+      const model = document.getElementById('model-select').value;
+      const set = conditions[model];
+      const result = set[Math.floor(Math.random() * set.length)];
+
+      const loading = document.getElementById('loading');
+      const panel = document.getElementById('result-panel');
+
+      panel.style.display = 'none';
+      loading.style.display = 'flex';
+
+      setTimeout(() => {
+        loading.style.display = 'none';
+        panel.style.display = 'flex';
+
+        panel.innerHTML = `
+          <div class="result-main">
+            <div class="result-temp">${result.temp}${result.unit}</div>
+            <div class="result-condition">${result.cond}</div>
+          </div>
+          <div class="result-grid">
+            <div class="result-stat">
+              <div class="stat-label">Humidity</div>
+              <div class="stat-value">${result.hum}</div>
+            </div>
+            <div class="result-stat">
+              <div class="stat-label">Wind Speed</div>
+              <div class="stat-value">${result.wind}</div>
+            </div>
+            <div class="result-stat">
+              <div class="stat-label">Pressure</div>
+              <div class="stat-value">${result.pressure}</div>
+            </div>
+            <div class="result-stat">
+              <div class="stat-label">UV Index</div>
+              <div class="stat-value">${result.uv}</div>
+            </div>
+          </div>
+          <div>
+            <div class="confidence-bar">
+              <div class="confidence-fill" id="conf-fill"></div>
+            </div>
+            <div class="confidence-label">Model confidence: ${result.conf}%</div>
+          </div>
+        `;
+
+        setTimeout(() => {
+          const fill = document.getElementById('conf-fill');
+          if (fill) fill.style.width = result.conf + '%';
+        }, 50);
+      }, 1800);
+    }
+  </script>
+</body>
+</html>
